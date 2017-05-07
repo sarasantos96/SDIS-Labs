@@ -35,14 +35,13 @@ public class SSLClient{
 			request="REGISTER " + plate_number + " " + owner_name;
 
 			cypher_suite = new String[args.length-5];
-			for(int i = 5;i<args.length-1;i++) {
+			for(int i = 5;i<args.length;i++) {
 				cypher_suite[i-5]=args[i];
 			}
 		}else if(oper.equals("lookup")){
-			System.out.println("oi");
 			request="LOOKUP " + plate_number;
 			cypher_suite = new String[args.length-4];
-			for(int i = 4;i<args.length-1;i++) {
+			for(int i = 4;i<args.length;i++) {
 				cypher_suite[i-4]=args[i];
 			}
 		}else{
@@ -51,6 +50,7 @@ public class SSLClient{
 		}
 		System.out.println("Args length: "+ args.length);
 		System.out.println("Cypher: " + cypher_suite.length);
+		System.out.println(cypher_suite[0]);
 		System.out.println("Request: " + request);
 
 		addr = InetAddress.getByName(host_name);
