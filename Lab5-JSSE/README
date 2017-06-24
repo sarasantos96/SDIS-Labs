@@ -1,0 +1,2 @@
+java -Djavax.net.ssl.trustStore=truststore -Djavax.net.ssl.trustStorePassword=123456 -Djavax.net.ssl.keyStore=server.keys -Djavax.net.ssl.keyStorePassword=123456 SSLServer 1024 TLS_RSA_WITH_AES_128_CBC_SHA
+

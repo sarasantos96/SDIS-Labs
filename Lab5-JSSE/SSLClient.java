@@ -5,46 +5,93 @@ import javax.net.ssl.*;
 
 
 public class SSLClient{
+	private int SOCKET_TIMEOUT = 3000;
 
 	private String host_name;
 	private int port_number;
+	private InetAddress addr;
 
 	private String oper;
-	private String opnd;
+	private String plate_number;
 	private String request;
 
-	public SSLClient(String [] args){
+	private SSLSocket clientsocket = null;
+	private SSLSocketFactory sf = null;
+
+	private PrintWriter out = null;
+	private BufferedReader in = null;
+	private String[] cypher_suite;
+
+	public SSLClient(String [] args) throws UnknownHostException, IOException{
 		this.host_name = args[0];
 		this.port_number = Integer.parseInt(args[1]) ;
-		this.oper = args[2];
+		oper =args[2];
+		plate_number=args[3];
 
-		if(this.oper.equals("register"))
-			this.request = this.oper + " " + args[3] + " " + args[4];
-		else if(this.oper.equals("lookup"))
-			this.request = this.oper + " " + args[3];
+		System.out.println("Plate number: " + plate_number);
+
+		if(oper.equals("register")){
+			String owner_name=args[4];
+			request="REGISTER " + plate_number + " " + owner_name;
+
+			cypher_suite = new String[args.length-5];
+			for(int i = 5;i<args.length;i++) {
+				cypher_suite[i-5]=args[i];
+			}
+		}else if(oper.equals("lookup")){
+			request="LOOKUP " + plate_number;
+			cypher_suite = new String[args.length-4];
+			for(int i = 4;i<args.length;i++) {
+				cypher_suite[i-4]=args[i];
+			}
+		}else{
+			System.out.println("No suitable operation");
+			System.exit(1);
+		}
+		System.out.println("Args length: "+ args.length);
+		System.out.println("Cypher: " + cypher_suite.length);
+		System.out.println(cypher_suite[0]);
+		System.out.println("Request: " + request);
+
+		addr = InetAddress.getByName(host_name);
+
+		sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+
+		try{
+			//System.out.println(cypher_suite[0]);
+			clientsocket = (SSLSocket) SSLSocketFactory.getDefault().createSocket(addr,port_number);
+			if(cypher_suite.length==0){
+				SSLServerSocketFactory ssf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
+				clientsocket.setEnabledCipherSuites(ssf.getDefaultCipherSuites());
+			}
+			else{
+				clientsocket.setEnabledCipherSuites(cypher_suite);
+			}
+
+		}catch (IOException e){
+			e.printStackTrace();
+		}
+
+
 	}
 
 	public int getPortNumber(){
 		return port_number;
 	}
 
-	/*public void sendMessage() throws IOException{
-		InetAddress host = InetAddress.getByName(host_name);
-		SSLSocket sslSocket = (SSLSocket) SSLSocketFactory.getDefault().createSocket(host,port_number);
+	public void sendMessage() throws IOException{
+		out = new PrintWriter(clientsocket.getOutputStream(),true);
+		in = new BufferedReader(new InputStreamReader(clientsocket.getInputStream()));
 
-    PrintWriter out =
-        new PrintWriter(sslSocket.getOutputStream(), true);
-    BufferedReader in =
-        new BufferedReader(
-            new InputStreamReader(sslSocket.getInputStream()));
 		out.println(request);
-		String response = in.readLine();
-		System.out.println(response);
+
+		String response = new String(in.readLine());
+		System.out.println("Response: " + response);
 
 		out.close();
 		in.close();
-		sslSocket.close();
-	}*/
+
+	}
 
 	//java SSLClient <host> <port> <oper> <opnd>* <cypher-suite>*
 	public static void main(String [] args) throws IOException{
@@ -54,30 +101,6 @@ public class SSLClient{
 
 		SSLClient client = new SSLClient(args);
 
-		//client.sendMessage();
-		int port = client.port_number;
-		String host = client.host_name;
-
-		try {
-		    SSLSocketFactory sslFact =
-		      (SSLSocketFactory)SSLSocketFactory.getDefault();
-		    SSLSocket s =
-		      (SSLSocket)sslFact.createSocket(host, port);
-					 s.startHandshake();
-
-		    OutputStream out = s.getOutputStream();
-		    InputStream in = s.getInputStream();
-
-		    // Send messages to the server through
-		    // the OutputStream
-		    // Receive messages from the server
-		    // through the InputStream
-				PrintWriter outprinter = new PrintWriter(out,true);
-				BufferedReader inprinter =
-		        new BufferedReader(
-		            new InputStreamReader(in));
-				outprinter.println(client.request);
-
-		} catch (IOException e) { }
+		client.sendMessage();
 	}
 }

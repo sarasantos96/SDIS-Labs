@@ -8,8 +8,36 @@ public class SSLServer{
 	private int port_number;
 	private ArrayList<Vehicle> vehicles = new ArrayList<Vehicle>();
 
-	public SSLServer(int port){
-		this.port_number = port;
+	String [] cypher_suite;
+	SSLServerSocket listener = null;
+	SSLServerSocketFactory ssf = null;
+
+	public SSLServer(String [] args) throws IOException{
+
+		this.port_number = Integer.parseInt(args[0]);
+
+		int numCyphers=args.length-1;
+		cypher_suite=new String[numCyphers];
+		for(int i=0;i<numCyphers;i++){
+			int j=i+1;
+			cypher_suite[i]=args[j];
+		}
+
+		ssf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
+		try{
+			listener = (SSLServerSocket) ssf.createServerSocket(port_number);
+			listener.setNeedClientAuth(true);
+			if(cypher_suite.length==0){
+				listener.setEnabledCipherSuites(ssf.getDefaultCipherSuites());
+			}
+			else{
+				listener.setEnabledCipherSuites(cypher_suite);
+			}
+
+
+		}catch(IOException e){
+			e.printStackTrace();
+		}
 	}
 
 	public int addVehicle(String license_number, String owner_name){
@@ -53,96 +81,60 @@ public class SSLServer{
 	}
 
 
-	/*public void receiveMessage() throws IOException{
+	public void receiveMessage() throws IOException{
 
 		while(true){
-			SSLServerSocket s = null;
-			SSLServerSocketFactory ssf = null;
+			SSLSocket socket = (SSLSocket) listener.accept();
 
-			ssf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
+			try{
+				BufferedReader in  = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				PrintWriter out = new PrintWriter(socket.getOutputStream(),true);
 
-			try {
-			    s = (SSLServerSocket) ssf.createServerSocket(port_number);
-			}
-			catch( IOException e) {
-			    System.out.println("Server - Failed to create SSLServerSocket");
-			    e.getMessage();
-			    return;
-			}
-			PrintWriter out = null;
-			BufferedReader in = null;
-			in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-			out = new PrintWriter(s.getOutputStream(),true);
+				String request = new String(in.readLine().trim());
+				System.out.println("Request received: " + request);
 
-			String request = new String(in.readLine());
-			System.out.println("Resquest received: "+ request);
+				String message = "ERROR";
 
-			String message = "ERROR";
+				String[] split = request.split(" ");
 
-			String[] split = request.split(" ");
-
-			if(split[0].equals("register")){
-				if(split.length != 3){
-					//Enviar mensagem de erro para o client
-					System.out.println("Invalid Request");
-				}else{
-					//Adicionar Veiculo à base de dados
-					int result = this.addVehicle(split[1],split[2]);
-					message = new String("Number of Vehicles: " + Integer.toString(result));
+				if(split[0].equals("REGISTER")){
+					if(split.length != 3){
+						//Enviar mensagem de erro para o client
+						System.out.println("Invalid Request");
+					}else{
+						//Adicionar Veiculo à base de dados
+						int result = this.addVehicle(split[1],split[2]);
+						message = new String("Number of Vehicles: " + Integer.toString(result));
+					}
+				}else if(split[0].equals("LOOKUP")){
+					String result = this.getNameByLicense(split[1]);
+					message = new String("Owner: "+ result);
 				}
-			}else if(split[0].equals("lookup")){
-				String result = this.getNameByLicense(split[1]);
-				message = new String("Owner: "+ result);
+
+				out.println(message);
+
+				out.close();
+				in.close();
+
+
+			}catch (Exception e){
+				e.printStackTrace();
 			}
 
-			out.println(message);
-
-			out.close();
-			in.close();
-
-			srvSocket.close();
 		}
-	}*/
+	}
 
 	//java SSLServer <port> <cypher-suite>*
 	public static void main(String [] args) throws IOException{
-		int port_number = Integer.parseInt(args[0]);
+		SSLServer server = new SSLServer(args);
 		//Initial database
-		//server.addVehicle("12-A3-56","Fernando");
-		//server.addVehicle("26-64-XU","Manuel");
+		server.addVehicle("12-A3-56","Fernando");
+		server.addVehicle("26-64-XU","Manuel");
 
+		System.out.println("Starting server...");
 
-		//server.receiveMessage();
-			System.out.println("Starting server...");
-			int port = port_number;
+		server.receiveMessage();
 
-			SSLServerSocket s = null;
-			SSLServerSocketFactory ssf = null;
-
-			ssf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
-
-			try {
-			    s = (SSLServerSocket) ssf.createServerSocket(port);
-					SSLSocket c = (SSLSocket)s.accept();
-					System.out.println("oi");
-					OutputStream out = c.getOutputStream();
-			    InputStream in = c.getInputStream();
-
-			    // Send messages to the client through
-			    // the OutputStream
-			    // Receive messages from the client
-			    // through the InputStream
-
-					PrintWriter outprinter = new PrintWriter(out,true);
-					BufferedReader inprinter = new BufferedReader(new InputStreamReader(in));
-					String receive  = new String(inprinter.readLine());
-					System.out.println(receive);
-			}
-			catch( IOException e) {
-			    System.out.println("Server - Failed to create SSLServerSocket");
-			    e.getMessage();
-			    return;
-			}
 
 	}
 
